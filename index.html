@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PlayBack — Help bring the Museum of Childhood to Dublin</title>
+    <link rel="stylesheet" href="styles.css" />
+        <meta name="description" content="PlayBack — a short playable prototype helping raise micro-donations for the Museum of Childhood Ireland. Play a round, share a challenge, or donate €2 to support a physical museum in Dublin." />
+        <meta property="og:title" content="PlayBack — Help bring the Museum of Childhood to Dublin" />
+        <meta property="og:description" content="Play a quick retro-inspired round, share a challenge with friends, or donate a small amount to support the Museum of Childhood Ireland." />
+        <meta property="og:image" content="" />
+        <meta name="theme-color" content="#ff6f61" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+        <header class="site-hero">
+            <div class="wrap hero-inner">
+                <div class="hero-content">
+                    <h1>PlayBack</h1>
+                    <p class="tag">Play a short retro-inspired challenge. Donate €2 (a coffee) or share a challenge — help bring the Museum of Childhood to Dublin.</p>
+                    <p class="cta-row">
+                        <a class="button donate" href="https://museumofchildhood.ie/support-us/" target="_blank" rel="noopener">Donate €2</a>
+                        <a class="button" href="#play">Play the demo</a>
+                    </p>
+                </div>
+                <div class="hero-art" aria-hidden="true">
+                    <!-- simple decorative SVG for modern feel -->
+                    <svg width="220" height="140" viewBox="0 0 220 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="6" y="6" width="208" height="128" rx="18" fill="#fff" opacity="0.12" />
+                        <circle cx="60" cy="60" r="22" fill="#ffd24d" />
+                        <rect x="110" y="35" width="70" height="46" rx="10" fill="#2b7cff" />
+                        <path d="M18 110c20-18 56-22 86-4 34 19 68 11 98-6" stroke="#fff" stroke-opacity="0.18" stroke-width="6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+        </header>
+
+    <main class="wrap">
+        <section id="about">
+            <h2>About the project</h2>
+            <p>The Museum of Childhood Ireland is a volunteer-run initiative collecting and celebrating material childhood culture. PlayBack is a short playable prototype to help raise awareness and small donations towards a permanent museum in Dublin.</p>
+            <p>Play a quick round, then share the challenge with friends — can they beat your score?</p>
+        </section>
+
+            <section id="play" class="play-section">
+                <h2>Play the demo</h2>
+                <p class="muted">A short 45-second round — collect childhood tokens and earn a high score. Challenge a friend when you finish.</p>
+                <div class="game-frame card-glass">
+                    <iframe id="game-frame" src="game.html" frameborder="0" title="PlayBack demo" allow="autoplay; fullscreen"></iframe>
+                </div>
+                <p class="note muted">Tip: Use arrow keys or touch to move. Save your score when the round ends to appear on the local leaderboard.</p>
+            </section>
+
+            <section id="share">
+                <h2>Share & Play on mobile</h2>
+                <p>Scan this QR on your phone to open the game, or copy the link to challenge friends.</p>
+                <div class="share-row card-glass">
+                    <div class="qr">
+                        <img id="qr-img" alt="QR code to open PlayBack" src="" />
+                    </div>
+                    <div class="links">
+                        <label for="game-link" class="small muted">Game link</label>
+                        <input id="game-link" readonly value="" />
+                        <div class="share-buttons">
+                            <button id="copy-link" class="btn">Copy link</button>
+                            <button id="open-link" class="btn">Open game</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="leaderboard">
+                <h2>Leaderboard</h2>
+                <div class="card-glass lb-panel">
+                    <ol id="lb-list"></ol>
+                    <p class="small muted">Leaderboard is stored in your browser (localStorage). Save your score after a round to appear here.</p>
+                </div>
+            </section>
+
+            <section id="more">
+                <h2>Why donate?</h2>
+                <div class="card-glass">
+                    <ul>
+                        <li>Help secure a permanent, accessible museum for childhood culture in Dublin.</li>
+                        <li>Support community projects like the Toy Hospital and pop-up exhibits.</li>
+                        <li>Small gifts add up — a €2 coffee-sized donation helps move us closer to a physical home.</li>
+                    </ul>
+                    <p class="small muted">Learn more on the official site: <a href="https://museumofchildhood.ie/" target="_blank" rel="noopener">museumofchildhood.ie</a></p>
+                </div>
+            </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="wrap">
+            <small>PlayBack prototype — proceeds and donations are handled on the museum's official fundraising page. Registered Charity number: 20205452</small>
+        </div>
+    </footer>
+
+    <script>
+        // Build game link and QR dynamically so it works on local / hosted envs
+        (function(){
+            const linkInput = document.getElementById('game-link');
+            const qrImg = document.getElementById('qr-img');
+            const origin = window.location.origin === 'null' ? window.location.href.replace(/\/[^/]*$/,'') : window.location.origin; // handle file://
+            const gameUrl = origin + window.location.pathname.replace(/[^/]*$/,'') + 'game.html';
+            linkInput.value = gameUrl;
+            // Use a public QR generator for the prototype
+            qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(gameUrl);
+
+            document.getElementById('copy-link').addEventListener('click', ()=>{
+                navigator.clipboard?.writeText(gameUrl).then(()=>{ alert('Link copied to clipboard'); }).catch(()=>{ prompt('Copy this link', gameUrl); });
+            });
+            document.getElementById('open-link').addEventListener('click', ()=>{ window.open(gameUrl,'_blank'); });
+
+            // Populate leaderboard from localStorage
+            function renderLeaderboard(){
+                const raw = localStorage.getItem('playback_leaderboard');
+                let list = [];
+                try{ list = raw ? JSON.parse(raw) : []; }catch(e){ list = []; }
+                const ol = document.getElementById('lb-list');
+                ol.innerHTML = '';
+                if(!list.length){ ol.innerHTML = '<li>No scores yet — be the first to play!</li>'; return; }
+                list.slice(0,10).forEach(entry=>{
+                    const li = document.createElement('li');
+                    li.textContent = `${entry.name || 'Player'} — ${entry.score} pts (${new Date(entry.date).toLocaleDateString()})`;
+                    ol.appendChild(li);
+                });
+            }
+            renderLeaderboard();
+            // Update leaderboard when storage changes (e.g., saved from game frame)
+            window.addEventListener('storage', function(e){ if(e.key === 'playback_leaderboard') renderLeaderboard(); });
+        })();
+    </script>
+</body>
+</html>

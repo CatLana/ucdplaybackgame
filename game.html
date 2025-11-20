@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PlayBack — Demo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="game-wrap">
+    <h2>PlayBack — Demo</h2>
+    <canvas id="game-canvas" width="720" height="420"></canvas>
+    <div class="hud">
+      <div id="score">Score: 0</div>
+      <div id="timer">Time: 0</div>
+      <button id="mute" class="btn">Mute</button>
+    </div>
+    <p class="muted">Use arrow keys or touch to move. Each round is short — collect as many tokens as you can!</p>
+  </div>
+
+  <div id="end-overlay" class="overlay" style="display:none">
+    <div class="card">
+      <h3>Round complete</h3>
+      <p id="final-score">Your score: 0</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="save-score" class="btn">Save score</button>
+        <button id="share-score" class="btn">Share challenge</button>
+        <button id="donate-btn" class="btn">Donate</button>
+        <button id="play-again" class="btn">Play again</button>
+      </div>
+      <div id="qr-wrap" style="margin-top:12px;display:none">
+        <p>Scan to open this challenge:</p>
+        <img id="end-qr" src="" alt="QR" />
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
