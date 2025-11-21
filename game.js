@@ -11,6 +11,7 @@
   const donateBtn = document.getElementById('donate-btn');
   const playAgainBtn = document.getElementById('play-again');
   const endQr = document.getElementById('end-qr');
+  const startPauseBtn = document.getElementById('start-pause');
 
   // Game settings
   const ROUND_SECONDS = 45; // short round
@@ -27,8 +28,23 @@
 
   // Controls
   const input = { left:false, right:false, up:false, down:false, touchTarget:null };
-  window.addEventListener('keydown', e=>{ if(e.key==='ArrowLeft') input.left=true; if(e.key==='ArrowRight') input.right=true; if(e.key==='ArrowUp') input.up=true; if(e.key==='ArrowDown') input.down=true; });
-  window.addEventListener('keyup', e=>{ if(e.key==='ArrowLeft') input.left=false; if(e.key==='ArrowRight') input.right=false; if(e.key==='ArrowUp') input.up=false; if(e.key==='ArrowDown') input.down=false; });
+  window.addEventListener('keydown', e=>{
+    // prevent arrow keys / space from scrolling parent
+    const block = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Spacebar'];
+    if(block.includes(e.key)) { try{ e.preventDefault(); }catch(_){} }
+    if(e.key==='ArrowLeft') input.left=true;
+    if(e.key==='ArrowRight') input.right=true;
+    if(e.key==='ArrowUp') input.up=true;
+    if(e.key==='ArrowDown') input.down=true;
+  });
+  window.addEventListener('keyup', e=>{
+    const block = ['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','Spacebar'];
+    if(block.includes(e.key)) { try{ e.preventDefault(); }catch(_){} }
+    if(e.key==='ArrowLeft') input.left=false;
+    if(e.key==='ArrowRight') input.right=false;
+    if(e.key==='ArrowUp') input.up=false;
+    if(e.key==='ArrowDown') input.down=false;
+  });
 
   // Touch / pointer
   canvas.addEventListener('pointerdown', e=>{ input.touchTarget = getPointerPos(e); });
@@ -122,6 +138,28 @@
     const gameUrl = origin + window.location.pathname.replace(/[^/]*$/,'') + 'game.html?challenge=' + score;
     endQr.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(gameUrl);
   }
+
+  // Pause/resume logic
+  function pauseGame(){ if(!running) return; running=false; startPauseBtn.textContent = 'Resume'; }
+  function resumeGame(){ if(running) return; running=true; // adjust startTime so timer continues correctly
+    if(startTime === null) startTime = performance.now(); else { const now = performance.now(); // shift startTime forward by pause duration
+      // compute elapsed displayed time and adjust
+      // We track paused by not updating startTime while paused; to resume simply set startTime = now - elapsed
+      const elapsedSoFar = parseInt(timerEl.textContent.replace(/[^0-9]/g,''));
+      startTime = now - ( (ROUND_SECONDS - elapsedSoFar) * 1000 );
+    }
+    startPauseBtn.textContent = 'Pause';
+    requestAnimationFrame(gameLoop);
+  }
+
+  startPauseBtn.addEventListener('click', ()=>{
+    if(running) pauseGame(); else resumeGame();
+  });
+
+  // Pause when document hidden
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ if(running){ pauseGame(); }} else { /* do not auto-resume to avoid surprising the user */ }
+  });
 
   function saveScore(){ const name = prompt('Enter name to save score (max 20 chars):',''); if(name===null) return; const entry = { name: (name||'Player').slice(0,20), score: score, date: (new Date()).toISOString() };
     const raw = localStorage.getItem('playback_leaderboard'); let list = raw?JSON.parse(raw):[]; list.push(entry); list.sort((a,b)=>b.score - a.score); list = list.slice(0,50); localStorage.setItem('playback_leaderboard', JSON.stringify(list)); alert('Score saved!'); }

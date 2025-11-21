@@ -17,6 +17,11 @@
 <body>
         <header class="site-hero">
             <div class="wrap hero-inner">
+                <div class="hero-art">
+                    <img class="site-logo" src="assets/museum_of_childhood_logo.jpg" alt="Museum of Childhood logo" />
+                    <p class="logo-tagline">Sponsored by Museum of Childhood Ireland</p>
+                </div>
+
                 <div class="hero-content">
                     <h1>PlayBack</h1>
                     <p class="tag">Play a short retro-inspired challenge. Donate €2 (a coffee) or share a challenge — help bring the Museum of Childhood to Dublin.</p>
@@ -24,15 +29,6 @@
                         <a class="button donate" href="https://museumofchildhood.ie/support-us/" target="_blank" rel="noopener">Donate €2</a>
                         <a class="button" href="#play">Play the demo</a>
                     </p>
-                </div>
-                <div class="hero-art" aria-hidden="true">
-                    <!-- simple decorative SVG for modern feel -->
-                    <svg width="220" height="140" viewBox="0 0 220 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="6" y="6" width="208" height="128" rx="18" fill="#fff" opacity="0.12" />
-                        <circle cx="60" cy="60" r="22" fill="#ffd24d" />
-                        <rect x="110" y="35" width="70" height="46" rx="10" fill="#2b7cff" />
-                        <path d="M18 110c20-18 56-22 86-4 34 19 68 11 98-6" stroke="#fff" stroke-opacity="0.18" stroke-width="6" stroke-linecap="round"/>
-                    </svg>
                 </div>
             </div>
         </header>
@@ -48,7 +44,7 @@
                 <h2>Play the demo</h2>
                 <p class="muted">A short 45-second round — collect childhood tokens and earn a high score. Challenge a friend when you finish.</p>
                 <div class="game-frame card-glass">
-                    <iframe id="game-frame" src="game.html" frameborder="0" title="PlayBack demo" allow="autoplay; fullscreen"></iframe>
+                    <iframe id="game-frame" src="game.html" frameborder="0" title="PlayBack demo" allow="autoplay; fullscreen" tabindex="0"></iframe>
                 </div>
                 <p class="note muted">Tip: Use arrow keys or touch to move. Save your score when the round ends to appear on the local leaderboard.</p>
             </section>
@@ -76,6 +72,18 @@
                 <div class="card-glass lb-panel">
                     <ol id="lb-list"></ol>
                     <p class="small muted">Leaderboard is stored in your browser (localStorage). Save your score after a round to appear here.</p>
+                    <!-- Name entry modal (opened when the iframe requests a save) -->
+                    <div id="name-modal" class="overlay" style="display:none">
+                        <div class="card">
+                            <h3>Save your score</h3>
+                            <p id="modal-prompt" class="small muted">Enter a name to save your score:</p>
+                            <input id="name-input" maxlength="20" placeholder="Name (max 20 chars)" />
+                            <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
+                                <button id="modal-cancel" class="btn">Cancel</button>
+                                <button id="modal-save" class="btn">Save</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -122,15 +130,60 @@
                 const ol = document.getElementById('lb-list');
                 ol.innerHTML = '';
                 if(!list.length){ ol.innerHTML = '<li>No scores yet — be the first to play!</li>'; return; }
-                list.slice(0,10).forEach(entry=>{
+                // show top 5
+                list.slice(0,5).forEach((entry, idx)=>{
                     const li = document.createElement('li');
-                    li.textContent = `${entry.name || 'Player'} — ${entry.score} pts (${new Date(entry.date).toLocaleDateString()})`;
+                    li.innerHTML = `<strong>#${idx+1}</strong> <span class="lb-name">${(entry.name||'Player')}</span> — <span class="lb-score">${entry.score}</span> pts <small class="muted">(${new Date(entry.date).toLocaleDateString()})</small>`;
                     ol.appendChild(li);
                 });
             }
             renderLeaderboard();
             // Update leaderboard when storage changes (e.g., saved from game frame)
             window.addEventListener('storage', function(e){ if(e.key === 'playback_leaderboard') renderLeaderboard(); });
+
+            // Handle save requests from iframe via postMessage
+            const nameModal = document.getElementById('name-modal');
+            const nameInput = document.getElementById('name-input');
+            const modalSave = document.getElementById('modal-save');
+            const modalCancel = document.getElementById('modal-cancel');
+            let pendingScore = null;
+
+            function openNameModal(score){
+                pendingScore = score;
+                nameInput.value = '';
+                document.getElementById('modal-prompt').textContent = `Save ${score} points — enter a name:`;
+                nameModal.style.display = 'flex';
+                nameInput.focus();
+            }
+
+            function closeNameModal(){ pendingScore = null; nameModal.style.display = 'none'; }
+
+            modalCancel.addEventListener('click', ()=>{ closeNameModal(); });
+            modalSave.addEventListener('click', ()=>{
+                const name = (nameInput.value || 'Player').slice(0,20);
+                if(pendingScore === null) return closeNameModal();
+                const entry = { name: name, score: pendingScore, date: (new Date()).toISOString() };
+                const raw = localStorage.getItem('playback_leaderboard');
+                let list = raw?JSON.parse(raw):[];
+                list.push(entry);
+                list.sort((a,b)=>b.score - a.score);
+                list = list.slice(0,50);
+                localStorage.setItem('playback_leaderboard', JSON.stringify(list));
+                closeNameModal();
+                renderLeaderboard();
+                // let iframe know it was saved (optional)
+                const iframe = document.getElementById('game-frame');
+                iframe?.contentWindow?.postMessage({ type:'save-confirm', score: entry.score, name: entry.name }, '*');
+            });
+
+            window.addEventListener('message', function(e){
+                try{
+                    const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                    if(data && data.type === 'request-save-score'){
+                        openNameModal(data.score);
+                    }
+                }catch(err){ /* ignore */ }
+            });
         })();
     </script>
 </body>
