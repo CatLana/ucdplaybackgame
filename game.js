@@ -30,11 +30,56 @@
     { id:'robot', shape:'square', color:'#5b8cfe', points:90, growth:2 }
   ];
 
+  // Pre-render toy SVG sprites into Image objects
+  const toySprites = [];
+  function svgToDataUrl(svg){ return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); }
+  function makeToySVG(type){
+    const size = 64;
+    const color = type.color || '#fff';
+    // simple svg variants per type.id
+    if(type.id === 'ball'){
+      return `<?xml version='1.0' encoding='utf-8'?><svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+        <defs><radialGradient id='g' cx='30%' cy='30%'><stop offset='0' stop-color='#fff' stop-opacity='0.9'/><stop offset='1' stop-color='${color}' stop-opacity='1'/></radialGradient></defs>
+        <circle cx='${size/2}' cy='${size/2}' r='${size*0.38}' fill='url(#g)' stroke='#000' stroke-opacity='0.12' stroke-width='2'/>
+        <path d='M ${size*0.3} ${size*0.6} Q ${size*0.5} ${size*0.4} ${size*0.7} ${size*0.6}' stroke='rgba(255,255,255,0.6)' stroke-width='2' fill='none' stroke-linecap='round'/>
+      </svg>`;
+    }
+    if(type.id === 'teddy'){
+      return `<?xml version='1.0' encoding='utf-8'?><svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+        <g fill='${color}' stroke='#000' stroke-opacity='0.12' stroke-width='2'>
+          <circle cx='${size*0.35}' cy='${size*0.35}' r='${size*0.16}' />
+          <circle cx='${size*0.65}' cy='${size*0.35}' r='${size*0.16}' />
+          <circle cx='${size*0.5}' cy='${size*0.6}' r='${size*0.28}' />
+        </g>
+      </svg>`;
+    }
+    if(type.id === 'doll'){
+      return `<?xml version='1.0' encoding='utf-8'?><svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+        <rect x='${size*0.28}' y='${size*0.35}' width='${size*0.44}' height='${size*0.45}' rx='${size*0.06}' fill='${color}' stroke='#000' stroke-opacity='0.12' stroke-width='2'/>
+        <circle cx='${size*0.5}' cy='${size*0.22}' r='${size*0.12}' fill='#fff' stroke='rgba(0,0,0,0.08)' stroke-width='1'/>
+      </svg>`;
+    }
+    // robot
+    return `<?xml version='1.0' encoding='utf-8'?><svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'>
+      <rect x='${size*0.22}' y='${size*0.25}' width='${size*0.56}' height='${size*0.5}' rx='${size*0.06}' fill='${type.color}' stroke='#000' stroke-opacity='0.12' stroke-width='2'/>
+      <circle cx='${size*0.4}' cy='${size*0.45}' r='${size*0.06}' fill='#fff'/>
+      <circle cx='${size*0.6}' cy='${size*0.45}' r='${size*0.06}' fill='#fff'/>
+      <rect x='${size*0.45}' y='${size*0.6}' width='${size*0.1}' height='${size*0.08}' rx='2' fill='#000' opacity='0.12'/>
+    </svg>`;
+  }
+  // create Image objects
+  for(let i=0;i<TOY_TYPES.length;i++){ const data = svgToDataUrl(makeToySVG(TOY_TYPES[i])); const img = new Image(); img.src = data; toySprites.push(img); }
+
+  // DOM element for toy legend (shows points and counts)
+  const toyLegendEl = document.getElementById('toy-legend');
+
+
   // game state
   let snake = []; // array of {x,y} grid cells, head is snake[0]
   let dir = { x:1, y:0 }; // current direction
   let nextDir = { x:1, y:0 };
   let toys = []; // placed toys: {x,y,typeIndex}
+  let toyCounts = new Array(TOY_TYPES.length).fill(0);
   let score = 0;
   let running = false;
   let startedOnce = false; // track if player started a round
@@ -71,9 +116,11 @@
     nextDir = { x:1, y:0 };
     toys = [];
     score = 0;
-    // spawn a few toys
+    // reset toy counts and spawn a few toys
+    toyCounts = new Array(TOY_TYPES.length).fill(0);
     for(let i=0;i<6;i++) placeToy();
     updateUI();
+    renderToyLegend();
   }
 
   // input handling (keyboard)
@@ -119,6 +166,8 @@
     }
     if(ate >= 0){
       const t = TOY_TYPES[toys[ate].typeIndex];
+      // increment collected count for this toy type
+      toyCounts[toys[ate].typeIndex] = (toyCounts[toys[ate].typeIndex] || 0) + 1;
       score += t.points;
       // grow by leaving tail (growth handled by not popping for growth steps)
       for(let g=0; g < t.growth-1; g++){
@@ -129,6 +178,8 @@
       toys.splice(ate,1);
       // spawn a replacement toy
       placeToy();
+      // update legend to reflect new counts
+      renderToyLegend();
     } else {
       // normal movement: remove tail (no growth)
       snake.pop();
@@ -144,6 +195,22 @@
     }
   }
 
+  // Render toy legend with point values and counts
+  function renderToyLegend(){
+    if(!toyLegendEl) return;
+    const parts = [];
+    // description line (full width)
+    parts.push(`<div class="legend-desc">Each toy gives a different number of points — collect the best ones to maximise your score.</div>`);
+    for(let i=0;i<TOY_TYPES.length;i++){
+      const ty = TOY_TYPES[i];
+      const count = (toyCounts && toyCounts[i])? toyCounts[i] : 0;
+      const imgHtml = toySprites[i] && toySprites[i].src ? `<img src="${toySprites[i].src}"/>` : `<span style="display:inline-block;width:20px;height:20px;background:${ty.color};border-radius:4px"></span>`;
+      const name = ty.id.charAt(0).toUpperCase() + ty.id.slice(1);
+      parts.push(`<div class="toy-item">${imgHtml}<span>${name} — ${ty.points} pts <strong style=\"margin-left:6px;color:#ffd\">x${count}</strong></span></div>`);
+    }
+    toyLegendEl.innerHTML = parts.join('');
+  }
+
   function draw(){
     // clear
     ctx.fillStyle = '#071b14'; // dark retro background
@@ -155,19 +222,26 @@
     for(let x=0;x<=COLS;x++){ ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,canvas.height); ctx.stroke(); }
     for(let y=0;y<=ROWS;y++){ ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(canvas.width,y*CELL); ctx.stroke(); }
 
-    // draw toys
+    // draw toys (use pre-rendered SVG sprites when available)
     for(const t of toys){
       const p = gridToPx(t);
       const ty = TOY_TYPES[t.typeIndex];
-      ctx.fillStyle = ty.color;
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-      ctx.lineWidth = 2;
-      const s = CELL*0.4;
-      ctx.beginPath();
-      if(ty.shape === 'circle') ctx.arc(p.x, p.y, s/2, 0, Math.PI*2);
-      else if(ty.shape === 'square') ctx.rect(p.x - s/2, p.y - s/2, s, s);
-      else if(ty.shape === 'triangle') { ctx.moveTo(p.x, p.y - s/2); ctx.lineTo(p.x - s/2, p.y + s/2); ctx.lineTo(p.x + s/2, p.y + s/2); ctx.closePath(); }
-      ctx.fill(); ctx.stroke();
+      const sprite = toySprites[t.typeIndex];
+      const size = Math.floor(CELL * 0.9);
+      if(sprite && sprite.complete){
+        ctx.drawImage(sprite, Math.round(p.x - size/2), Math.round(p.y - size/2), size, size);
+      } else {
+        // fallback to simple shape while image loads
+        ctx.fillStyle = ty.color;
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.lineWidth = 2;
+        const s = CELL*0.4;
+        ctx.beginPath();
+        if(ty.shape === 'circle') ctx.arc(p.x, p.y, s/2, 0, Math.PI*2);
+        else if(ty.shape === 'square') ctx.rect(p.x - s/2, p.y - s/2, s, s);
+        else if(ty.shape === 'triangle') { ctx.moveTo(p.x, p.y - s/2); ctx.lineTo(p.x - s/2, p.y + s/2); ctx.lineTo(p.x + s/2, p.y + s/2); ctx.closePath(); }
+        ctx.fill(); ctx.stroke();
+      }
     }
 
     // draw snake

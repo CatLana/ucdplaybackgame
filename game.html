@@ -8,14 +8,15 @@
 </head>
 <body class="game-page">
   <div class="game-wrap">
-    <canvas id="game-canvas" width="720" height="420"></canvas>
     <div class="hud">
       <div id="score">Score: 0</div>
       <div id="timer">Time: 0</div>
       <button id="start-pause" class="btn">Pause</button>
       <button id="mute" class="btn">Mute</button>
     </div>
+    <canvas id="game-canvas" width="720" height="320"></canvas>
     <p class="muted">Use arrow keys or touch to move. Each round is short — collect as many tokens as you can!</p>
+    <div id="toy-legend" class="toy-legend" aria-live="polite"></div>
   </div>
 
   <div id="end-overlay" class="overlay" style="display:none">

@@ -14,16 +14,29 @@
   height: auto;
 }
 .hud {
-  margin-top: 12px;
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+/* When HUD is shown above the canvas give it bottom spacing */
+.game-page .hud {
+  margin-bottom: 12px;
 }
 
 @media (max-width: 640px) {
   .game-tagline {
     max-width: 420px;
   }
+}
+
+/* Further reduce canvas height and tighten HUD on small viewports */
+@media (max-width: 480px) {
+  .game-page .game-wrap { padding: 10px 10px 40px; }
+  .game-page #game-canvas { max-height: calc(100vh - 340px); }
+  .game-page .toy-legend { font-size: 12px; gap:8px }
+  .game-page .hud { gap: 8px; flex-wrap: wrap; }
+  .game-page .hud button { padding: 8px 10px; font-size: 13px }
 }
 
 /* Fullscreen / no-scroll behaviour for the standalone game page */
@@ -38,12 +51,13 @@ body.game-page {
 .game-page .game-wrap {
   height: 100vh;
   box-sizing: border-box;
-  padding: 16px;
-  justify-content: center;
+  padding: 16px 16px 24px; /* extra bottom padding so legend is visible */
+  justify-content: flex-start; /* start from top so HUD and legend stay visible */
 }
 .game-page #game-canvas {
   max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 120px);
+  /* reduce canvas max height to leave more room for HUD and legend below */
+  max-height: calc(100vh - 220px);
   width: auto;
   height: auto;
   border-radius: 8px;
@@ -55,3 +69,25 @@ body.game-page {
 .game-page .overlay {
   align-items: center;
 }
+
+/* Toy legend styling inside game HUD */
+.game-page .toy-legend {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  font-size: 13px;
+}
+.game-page .toy-legend .legend-desc {
+  width: 100%;
+  color: #e6f7ea;
+  font-size: 12px;
+  opacity: 0.95;
+  margin-bottom: 2px;
+}
+.game-page .toy-legend .toy-item { display:inline-flex;align-items:center;gap:6px;margin-right:8px }
+.game-page .toy-legend img { width:20px;height:20px;border-radius:4px; }
